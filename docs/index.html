@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>DAWORLD Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d1014;--panel:#151a20;--panel2:#1b2129;--line:#262e38;--text:#e6ebf0;--muted:#8b97a5;
+  --accent:#4cc38a;--accent2:#2f8f63;--warn:#e5a83b;--bad:#e5564b;--info:#58a6ff;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 Inter,system-ui,sans-serif}
+button,input,textarea,select{font:inherit;color:inherit}
+.hidden{display:none!important}
+/* gate */
+#gate{min-height:100vh;display:grid;place-items:center;padding:16px}
+.gatebox{width:100%;max-width:360px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:28px}
+.logo{font-weight:700;letter-spacing:.14em;font-size:22px}
+.logo span{color:var(--accent)}
+.sub{color:var(--muted);font-size:13px;margin:4px 0 20px}
+input,textarea,select{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;outline:none}
+input:focus,textarea:focus{border-color:var(--accent)}
+.btn{background:var(--accent2);border:1px solid var(--accent);color:#fff;border-radius:8px;padding:9px 14px;cursor:pointer;font-weight:600}
+.btn:hover{background:var(--accent);color:#0b1a12}
+.btn.ghost{background:transparent;border-color:var(--line);color:var(--text);font-weight:500}
+.btn.ghost:hover{border-color:var(--muted);background:var(--panel2)}
+.btn.danger{background:transparent;border-color:#5b2a27;color:#ff8a80}
+.btn.danger:hover{background:var(--bad);color:#fff;border-color:var(--bad)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.err{color:#ff8a80;font-size:13px;min-height:20px;margin-top:8px}
+/* app */
+header{position:sticky;top:0;z-index:5;background:rgba(13,16,20,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.bar{max-width:1280px;margin:0 auto;padding:12px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:3px 10px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.dot.on{background:var(--accent);box-shadow:0 0 8px var(--accent)}.dot.off{background:var(--bad)}
+.spacer{flex:1}
+nav{display:flex;gap:4px;max-width:1280px;margin:0 auto;padding:0 16px;overflow-x:auto}
+nav button{background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);padding:10px 12px;cursor:pointer;white-space:nowrap}
+nav button.active{color:var(--text);border-bottom-color:var(--accent)}
+main{max-width:1280px;margin:0 auto;padding:20px 16px 60px}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+.card h2{font-size:14px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 12px;display:flex;align-items:center;gap:8px}
+.card h2 .count{background:var(--panel2);border-radius:999px;padding:0 8px;font-size:12px;color:var(--text)}
+.c12{grid-column:span 12}.c7{grid-column:span 7}.c5{grid-column:span 5}.c8{grid-column:span 8}.c4{grid-column:span 4}
+@media(max-width:900px){.c7,.c5,.c8,.c4{grid-column:span 12}}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.muted{color:var(--muted)}.small{font-size:13px}
+textarea{min-height:84px;resize:vertical}
+/* logs */
+.log{font:12.5px/1.55 var(--mono);background:#0a0d10;border:1px solid var(--line);border-radius:8px;padding:10px 12px;height:62vh;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.log .w{color:var(--warn)}.log .e{color:var(--bad)}.log .j{color:var(--accent)}.log .c{color:var(--info)}
+/* lists */
+.list{display:flex;flex-direction:column;gap:8px}
+.item{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px}
+.tag{display:inline-block;font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;border-radius:6px;padding:1px 7px;border:1px solid}
+.tag.ok{color:var(--accent);border-color:#235c42}.tag.bad{color:#ff8a80;border-color:#5b2a27}.tag.warn{color:var(--warn);border-color:#5c4520}.tag.info{color:var(--info);border-color:#21426b}.tag.mute{color:var(--muted);border-color:var(--line)}
+code,.mono{font-family:var(--mono);font-size:12.5px}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.tablewrap{overflow-x:auto}
+.bars{display:flex;flex-direction:column;gap:6px}
+.barrow{display:grid;grid-template-columns:130px 1fr 36px;gap:8px;align-items:center;font-size:13px}
+.barrow .track{height:8px;background:var(--panel2);border-radius:4px;overflow:hidden}
+.barrow .fill{height:100%;background:var(--warn)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12.5px;cursor:pointer;color:var(--muted)}
+.chip.on{color:var(--text);border-color:var(--accent)}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 16px;z-index:20;max-width:calc(100% - 32px)}
+dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:20px;width:min(420px,calc(100% - 32px))}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+@media(max-width:600px){#plBody td:nth-child(3),thead th:nth-child(3){display:none}.bar{gap:10px}.bar .btn.ghost{padding:6px 10px;font-size:13px}td{padding:8px 4px}.btn{padding:8px 10px}}
+.offline{background:#2a1716;border:1px solid #5b2a27;color:#ffb4ab;border-radius:10px;padding:12px 14px;margin-bottom:16px}
+</style>
+</head>
+<body>
+
+<section id="gate">
+  <form class="gatebox" id="loginForm">
+    <div class="logo">DA<span>WORLD</span></div>
+    <div class="sub">Server control panel</div>
+    <input id="pw" type="password" placeholder="Password" autocomplete="current-password" autofocus>
+    <div class="err" id="loginErr"></div>
+    <button class="btn" style="width:100%">Enter</button>
+    <div class="sub small" id="backendNote" style="margin:14px 0 0"></div>
+  </form>
+</section>
+
+<section id="app" class="hidden">
+  <header>
+    <div class="bar">
+      <div class="logo" style="font-size:18px">DA<span>WORLD</span></div>
+      <span class="pill"><span class="dot" id="stDot"></span><span id="stText">…</span></span>
+      <span class="pill" id="plPill">players …</span>
+      <div class="spacer"></div>
+      <button class="btn ghost" id="logout">Log out</button>
+    </div>
+    <nav id="tabs">
+      <button data-tab="requests" class="active">Requests</button>
+      <button data-tab="players">Players</button>
+      <button data-tab="cheating">Potential cheating</button>
+      <button data-tab="logs">Server logs</button>
+    </nav>
+  </header>
+  <main>
+    <div class="offline hidden" id="offline">Can't reach the server backend. It only runs while the owner's PC is on.</div>
+
+    <div class="grid" data-panel="requests">
+      <div class="card c5">
+        <h2>Make a request</h2>
+        <form id="reqForm" class="list">
+          <input id="reqFrom" placeholder="Your Minecraft name (optional)" maxlength="17">
+          <textarea id="reqText" maxlength="400" placeholder="e.g. Make it daytime and clear the rain please"></textarea>
+          <div class="row"><button class="btn" id="reqBtn">Send to the referee</button><span class="muted small" id="reqState"></span></div>
+        </form>
+        <p class="muted small" style="margin:14px 0 0">Claude checks if your request is fair to everyone. Fair requests run automatically. Only these can ever run: time &amp; weather, announcements, sounds, short harmless effects, and teleports between online players or to spawn.</p>
+      </div>
+      <div class="card c7">
+        <h2>Recent requests</h2>
+        <div class="list" id="reqList"><div class="muted small">No requests yet.</div></div>
+      </div>
+    </div>
+
+    <div class="grid hidden" data-panel="players">
+      <div class="card c12">
+        <h2>Players <span class="count" id="plCount">0</span></h2>
+        <div class="chips" style="margin-bottom:10px" id="plFilter">
+          <span class="chip on" data-f="all">All</span><span class="chip" data-f="online">Online</span><span class="chip" data-f="banned">Banned</span>
+        </div>
+        <div class="tablewrap"><table>
+          <thead><tr><th>Player</th><th>Status</th><th>Whitelist</th><th style="text-align:right">Actions</th></tr></thead>
+          <tbody id="plBody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <div class="grid hidden" data-panel="cheating">
+      <div class="card c4">
+        <h2>Flags by player</h2>
+        <div class="bars" id="chBars"></div>
+        <p class="muted small" id="chFiles"></p>
+      </div>
+      <div class="card c8">
+        <h2>Potential cheating attempts <span class="count" id="chCount">0</span></h2>
+        <div class="chips" style="margin-bottom:10px" id="chFilter"></div>
+        <div class="list" id="chList" style="max-height:62vh;overflow:auto"></div>
+      </div>
+    </div>
+
+    <div class="grid hidden" data-panel="logs">
+      <div class="card c12">
+        <h2>Server log <span class="muted small" style="text-transform:none;letter-spacing:0">(IPs and coordinates hidden)</span></h2>
+        <div class="row" style="margin-bottom:10px">
+          <input id="logFilter" placeholder="Filter…" style="max-width:280px">
+          <label class="small muted row"><input type="checkbox" id="logFollow" checked style="width:auto"> follow</label>
+        </div>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+  </main>
+</section>
+
+<dialog id="modDlg">
+  <form method="dialog" id="modForm">
+    <h3 id="modTitle" style="margin:0 0 10px"></h3>
+    <input id="modReason" maxlength="80" placeholder="Reason (optional)">
+    <div class="row" style="margin-top:14px;justify-content:flex-end">
+      <button class="btn ghost" value="cancel">Cancel</button>
+      <button class="btn danger" value="ok" id="modOk">Confirm</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+let BACKEND = null, TOKEN = null;
+try { TOKEN = sessionStorage.getItem("dw_token"); } catch {}
+
+async function findBackend() {
+  const q = new URLSearchParams(location.search).get("backend");
+  if (q) return q.replace(/\/+$/, "");
+  if (location.hostname === "localhost") return location.origin;
+  for (const url of ["backend.json?t=" + Date.now(), "https://raw.githubusercontent.com/aadamyahyakamran-commits/daworld-dashboard/main/docs/backend.json?t=" + Date.now()]) {
+    try { const j = await (await fetch(url, { cache: "no-store" })).json(); if (j.url) return j.url.replace(/\/+$/, ""); } catch {}
+  }
+  return null;
+}
+async function call(path, body) {
+  if (!BACKEND) BACKEND = await findBackend();
+  if (!BACKEND) throw new Error("Backend offline");
+  const r = await fetch(BACKEND + path, {
+    method: body ? "POST" : "GET",
+    headers: { "Content-Type": "application/json", ...(TOKEN ? { Authorization: "Bearer " + TOKEN } : {}) },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 401 && path !== "/api/login") { logout(); throw new Error("Session expired"); }
+  if (!r.ok) throw new Error(j.error || "Request failed (" + r.status + ")");
+  return j;
+}
+function toast(msg) { const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.append(t); setTimeout(() => t.remove(), 3500); }
+function setOffline(off) { $("#offline").classList.toggle("hidden", !off); }
+
+// ---- login ----
+$("#loginForm").addEventListener("submit", async (e) => {
+  e.preventDefault(); $("#loginErr").textContent = "";
+  try {
+    const { token } = await call("/api/login", { password: $("#pw").value });
+    TOKEN = token; try { sessionStorage.setItem("dw_token", token); } catch {}
+    start();
+  } catch (err) { $("#loginErr").textContent = err.message === "Backend offline" || err.message === "Failed to fetch" ? "Server panel is offline (the owner's PC is off)." : err.message; }
+});
+function logout() { TOKEN = null; try { sessionStorage.removeItem("dw_token"); } catch {} $("#app").classList.add("hidden"); $("#gate").classList.remove("hidden"); }
+$("#logout").onclick = logout;
+
+// ---- tabs ----
+let TAB = "requests";
+try { TAB = localStorage.getItem("dw_tab") || TAB; } catch {}
+function showTab(t) {
+  TAB = t; try { localStorage.setItem("dw_tab", t); } catch {}
+  document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("active", b.dataset.tab === t));
+  document.querySelectorAll("[data-panel]").forEach((p) => p.classList.toggle("hidden", p.dataset.panel !== t));
+  refresh(true);
+}
+$("#tabs").onclick = (e) => e.target.dataset.tab && showTab(e.target.dataset.tab);
+
+// ---- status ----
+async function loadStatus() {
+  try {
+    const s = await call("/api/status"); setOffline(false);
+    const on = s.state === "running";
+    $("#stDot").className = "dot " + (on ? "on" : "off");
+    $("#stText").textContent = on ? "online" : s.state || "unknown";
+  } catch { setOffline(true); $("#stDot").className = "dot"; $("#stText").textContent = "unreachable"; }
+}
+
+// ---- requests ----
+const verdictTag = (r) => ({ executed: '<span class="tag ok">fair · done</span>', denied: '<span class="tag bad">biased · denied</span>', "nothing allowed": '<span class="tag warn">fair · nothing runnable</span>', error: '<span class="tag mute">error</span>' }[r.status] || '<span class="tag mute">' + esc(r.status) + "</span>");
+function renderReq(r) {
+  const when = new Date(r.at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  return `<div class="item"><div class="row" style="justify-content:space-between"><div class="row">${verdictTag(r)}<b>${esc(r.from)}</b></div><span class="muted small">${when}</span></div>
+  <div style="margin:6px 0">${esc(r.request)}</div>
+  <div class="small muted">Referee: ${esc(r.reason)}</div>
+  ${r.executed?.length ? `<div class="small" style="margin-top:6px">Ran: ${r.executed.map((x) => `<code>${esc(x)}</code>`).join(" · ")}</div>` : ""}
+  ${r.rejected?.length ? `<div class="small muted" style="margin-top:4px">Blocked: ${r.rejected.map((x) => esc(x.action?.type + " (" + x.reason + ")")).join(", ")}</div>` : ""}</div>`;
+}
+async function loadRequests() { const { items } = await call("/api/requests"); $("#reqList").innerHTML = items.length ? items.map(renderReq).join("") : '<div class="muted small">No requests yet.</div>'; }
+try { $("#reqFrom").value = localStorage.getItem("dw_name") || ""; } catch {}
+$("#reqForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const request = $("#reqText").value.trim(), from = $("#reqFrom").value.trim();
+  if (!request) return;
+  try { localStorage.setItem("dw_name", from); } catch {}
+  $("#reqBtn").disabled = true; $("#reqState").textContent = "Claude is reviewing…";
+  try { const r = await call("/api/request", { request, from }); $("#reqText").value = ""; toast(r.status === "executed" ? "Approved and done ✓" : r.status === "denied" ? "Denied: " + r.reason : r.reason || r.status); loadRequests(); }
+  catch (err) { toast(err.message); }
+  finally { $("#reqBtn").disabled = false; $("#reqState").textContent = ""; }
+});
+
+// ---- players ----
+let PL = [], PLF = "all";
+function renderPlayers() {
+  const rows = PL.filter((p) => PLF === "all" || (PLF === "online" ? p.online : p.banned));
+  $("#plBody").innerHTML = rows.map((p) => `<tr>
+    <td><b>${esc(p.name)}</b>${p.protected ? ' <span class="tag info">owner</span>' : ""}</td>
+    <td>${p.banned ? `<span class="tag bad" title="${esc(p.banned.reason)}">banned</span>` : p.online ? '<span class="tag ok">online</span>' : '<span class="tag mute">offline</span>'}</td>
+    <td>${p.whitelisted ? "✓" : '<span class="muted">—</span>'}</td>
+    <td style="text-align:right;white-space:nowrap">${p.protected ? '<span class="muted small">protected</span>' : `
+      <button class="btn ghost" data-act="kick" data-p="${esc(p.name)}" ${p.online ? "" : "disabled"}>Kick</button>
+      <button class="btn danger" data-act="ban" data-p="${esc(p.name)}" ${p.banned ? "disabled" : ""}>Ban</button>`}</td></tr>`).join("") || '<tr><td colspan="4" class="muted">Nobody here.</td></tr>';
+}
+async function loadPlayers() {
+  const r = await call("/api/players"); PL = r.players;
+  $("#plPill").textContent = r.count == null ? "players ?" : `${r.count}/${r.max} online`;
+  $("#plCount").textContent = PL.length; renderPlayers();
+}
+$("#plFilter").onclick = (e) => { if (!e.target.dataset.f) return; PLF = e.target.dataset.f; document.querySelectorAll("#plFilter .chip").forEach((c) => c.classList.toggle("on", c === e.target)); renderPlayers(); };
+$("#plBody").onclick = (e) => {
+  const b = e.target.closest("button[data-act]"); if (!b) return;
+  const act = b.dataset.act, name = b.dataset.p;
+  $("#modTitle").textContent = (act === "ban" ? "Ban " : "Kick ") + name + "?";
+  $("#modReason").value = ""; $("#modOk").textContent = act === "ban" ? "Ban" : "Kick";
+  $("#modDlg").onclose = async () => {
+    if ($("#modDlg").returnValue !== "ok") return;
+    try { await call("/api/" + act, { player: name, reason: $("#modReason").value }); toast((act === "ban" ? "Banned " : "Kicked ") + name); loadPlayers(); } catch (err) { toast(err.message); }
+  };
+  $("#modDlg").showModal();
+};
+
+// ---- cheating ----
+let CH = null, CHF = "all";
+const typeTag = (t) => `<span class="tag ${t === "anticheat" ? "warn" : t === "give" || t === "gamemode" ? "bad" : "info"}">${esc(t)}</span>`;
+function renderCheat() {
+  if (!CH) return;
+  const types = ["all", ...new Set(CH.items.map((i) => i.type))];
+  $("#chFilter").innerHTML = types.map((t) => `<span class="chip ${t === CHF ? "on" : ""}" data-t="${esc(t)}">${esc(t)}</span>`).join("");
+  const items = CH.items.filter((i) => CHF === "all" || i.type === CHF);
+  $("#chCount").textContent = items.length;
+  $("#chList").innerHTML = items.map((i) => `<div class="item"><div class="row">${typeTag(i.type)}<b>${esc(i.player)}</b><span class="muted small">${esc(i.day)} ${esc(i.time)}</span></div><div class="mono muted" style="margin-top:6px">${esc(i.line)}</div></div>`).join("") || '<div class="muted small">Nothing suspicious found. 🎉</div>';
+  const entries = Object.entries(CH.byPlayer).sort((a, b) => b[1] - a[1]).slice(0, 12), max = entries[0]?.[1] || 1;
+  $("#chBars").innerHTML = entries.map(([p, n]) => `<div class="barrow"><span style="overflow:hidden;text-overflow:ellipsis">${esc(p)}</span><div class="track"><div class="fill" style="width:${(n / max) * 100}%"></div></div><span class="mono">${n}</span></div>`).join("") || '<span class="muted small">No flags.</span>';
+  $("#chFiles").textContent = "Scanned: " + CH.files.join(", ");
+}
+async function loadCheat() { CH = await call("/api/cheating"); renderCheat(); }
+$("#chFilter").onclick = (e) => { if (e.target.dataset.t) { CHF = e.target.dataset.t; renderCheat(); } };
+
+// ---- logs ----
+let LOG = [];
+function renderLog() {
+  const f = $("#logFilter").value.toLowerCase();
+  const el = $("#log");
+  el.innerHTML = LOG.filter((l) => !f || l.toLowerCase().includes(f)).map((l) => {
+    const cls = /WARN/.test(l) ? "w" : /ERROR|Exception/.test(l) ? "e" : /joined the game|logged in|left the game/.test(l) ? "j" : /issued server command/.test(l) ? "c" : "";
+    return `<div class="${cls}">${esc(l)}</div>`;
+  }).join("");
+  if ($("#logFollow").checked) el.scrollTop = el.scrollHeight;
+}
+async function loadLogs() { LOG = (await call("/api/logs?lines=500")).lines; renderLog(); }
+$("#logFilter").oninput = renderLog;
+
+// ---- loop ----
+const loaders = { requests: loadRequests, players: loadPlayers, cheating: loadCheat, logs: loadLogs };
+let busy = false;
+async function refresh(force) {
+  if (busy && !force) return; busy = true;
+  try { await Promise.all([loadStatus(), loaders[TAB]().catch((e) => e.message !== "Session expired" && toast(e.message))]); } finally { busy = false; }
+}
+let timer;
+function start() {
+  $("#gate").classList.add("hidden"); $("#app").classList.remove("hidden");
+  showTab(TAB);
+  clearInterval(timer); timer = setInterval(() => { if (!document.hidden && TOKEN) refresh(); }, 6000);
+}
+(async () => {
+  BACKEND = await findBackend();
+  $("#backendNote").textContent = BACKEND ? "" : "Server panel is offline right now.";
+  if (TOKEN && BACKEND) start();
+})();
+</script>
+</body>
+</html>
