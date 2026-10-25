@@ -20,6 +20,8 @@ const SERVER_CONTEXT = `SERVER FACTS (DAWORLD):
 - Plugins: Orbital (orbital strike cannons, command-only), LimitedMaces (max 3 maces on the server), StringDupersReturn (string dupers work),
   ClickVillagers (pick up villagers), squaremap (web map), Geyser, Floodgate, ViaVersion, RootCompanion.
 - Bedrock whitelist: use "fwhitelist add <name>" for Bedrock players, "whitelist add <name>" for Java.
+- Netherite upgrade templates are disabled (datapack daworld-no-templates): removed from bastion loot, the copy recipe needs barriers,
+  and anyone not in creative has them cleared from their inventory every tick. Don't give them out unless the owner asks.
 
 ORBITAL STRIKE CANNONS (fishing rods; OWNER ONLY, never for mods or players):
 - One cannon to a player: execute as <player> run function orbital:give/<type>

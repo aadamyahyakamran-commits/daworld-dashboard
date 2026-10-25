@@ -21,3 +21,6 @@ Run: double-click `Start DAWORLD Dashboard.cmd` (or `node start.mjs`).
 ## Border +/-10k + server context
 - [x] Overworld border floor in policy.mjs is now +/-10,000 (matches the new border).
 - [x] Referee and owner mode know the server: plugins, spawn, borders, all 17 orbital types (orbital:give/<type>), the orbital kit (daworld:orbital_shulkers), hunt functions. Tested: a mod asking for orbital cannons is denied.
+
+## No netherite upgrade templates
+- [x] World datapack daworld-no-templates: template removed from all 4 bastion loot tables (replaced by empty entries, other loot odds unchanged), duplication recipe needs barriers, tick clears templates (and bundles holding one) from non-creative players, dropped templates swept every 2s. Tested: 240 bastion loot rolls -> 1399 items, 0 templates. Referee knows about it.
