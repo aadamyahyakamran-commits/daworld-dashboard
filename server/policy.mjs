@@ -48,9 +48,9 @@ function checkOne(cmd, depth = 0) {
   if (root === "kill" && /type=!/i.test(cmd)) return "kill with a negated type= would wipe hunt markers";
   if (root === "kill" && /@e(?!\[[^\]]*type=(?!minecraft:marker\b|marker\b))/i.test(cmd)) return "kill @e needs a type= (and never markers)";
   if (root === "worldborder" && depth === 0) {
-    // overworld border can't shrink below ±15,000 or move (keeps the treasure hunt solvable)
+    // overworld border can't shrink below ±10,000 or move (keeps the treasure hunt solvable)
     if (parts[1] === "center") return "the overworld border centre can't move";
-    if (parts[1] === "set" && +parts[2] < 30000) return "overworld border can't go below ±15,000";
+    if (parts[1] === "set" && +parts[2] < 20000) return "overworld border can't go below ±10,000";
     if (parts[1] === "add" && +parts[2] < 0) return "overworld border can't shrink";
   }
   return null;

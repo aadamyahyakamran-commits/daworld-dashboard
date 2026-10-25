@@ -18,7 +18,7 @@ GitHub Pages (docs/)  ──HTTPS──▶  Cloudflare quick tunnel  ──▶  
 The password is checked by the backend, never in the page. Whatever Claude approves, `server/policy.mjs` always blocks:
 op/deop, data/locate/function/datapack (treasure-hunt safety), anything touching hunt markers/keys/vaults or orbital cannons,
 targeting the owner, handing items/effects/XP to anything but @a, creative mode, full inventory wipes, `kill @e` without a type,
-and shrinking or moving the overworld border below �15,000. Max 10 commands per request, 6 requests/min per person, 40/hour total.
+and shrinking or moving the overworld border below ±10,000. Max 10 commands per request, 6 requests/min per person, 40/hour total.
 
 ## Run
 
