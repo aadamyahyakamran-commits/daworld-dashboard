@@ -117,10 +117,11 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
         <h2>Make a request</h2>
         <form id="reqForm" class="list">
           <input id="reqFrom" placeholder="Your Minecraft name (optional)" maxlength="17">
-          <textarea id="reqText" maxlength="400" placeholder="e.g. Make it daytime and clear the rain please"></textarea>
+          <textarea id="reqText" maxlength="1000" placeholder="e.g. Remove all netherite upgrade templates from everyone"></textarea>
           <div class="row"><button class="btn" id="reqBtn">Send to the referee</button><span class="muted small" id="reqState"></span></div>
         </form>
-        <p class="muted small" style="margin:14px 0 0">Claude checks if your request is fair to everyone. Fair requests run automatically. Only these can ever run: time &amp; weather, announcements, sounds, short harmless effects, and teleports between online players or to spawn.</p>
+        <div id="reqResult" style="margin-top:12px"></div>
+        <p class="muted small" style="margin:14px 0 0">Claude turns your request into commands and runs it, unless it gives one player an advantage over everyone else (like giving someone netherite). Moderation and world management (border, gamerules, clearing items for everyone, bans) pass. Always blocked: op, touching the treasure hunt, targeting the owner, shrinking the overworld border below ±15,000.</p>
       </div>
       <div class="card c7">
         <h2>Recent requests</h2>
@@ -253,14 +254,15 @@ async function loadStatus() {
 }
 
 // ---- requests ----
-const verdictTag = (r) => ({ executed: '<span class="tag ok">fair · done</span>', denied: '<span class="tag bad">biased · denied</span>', "nothing allowed": '<span class="tag warn">fair · nothing runnable</span>', error: '<span class="tag mute">error</span>' }[r.status] || '<span class="tag mute">' + esc(r.status) + "</span>");
+const verdictTag = (r) => ({ executed: '<span class="tag ok">fair · done</span>', denied: '<span class="tag bad">biased · denied</span>', "nothing allowed": '<span class="tag warn">fair · nothing ran</span>', error: '<span class="tag mute">error</span>' }[r.status] || '<span class="tag mute">' + esc(r.status) + "</span>");
 function renderReq(r) {
   const when = new Date(r.at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
   return `<div class="item"><div class="row" style="justify-content:space-between"><div class="row">${verdictTag(r)}<b>${esc(r.from)}</b></div><span class="muted small">${when}</span></div>
   <div style="margin:6px 0">${esc(r.request)}</div>
   <div class="small muted">Referee: ${esc(r.reason)}</div>
-  ${r.executed?.length ? `<div class="small" style="margin-top:6px">Ran: ${r.executed.map((x) => `<code>${esc(x)}</code>`).join(" · ")}</div>` : ""}
-  ${r.rejected?.length ? `<div class="small muted" style="margin-top:4px">Blocked: ${r.rejected.map((x) => esc(x.action?.type + " (" + x.reason + ")")).join(", ")}</div>` : ""}</div>`;
+  ${r.executed?.length ? `<div class="small" style="margin-top:6px">Ran: ${r.executed.map((x) => `<code>/${esc(x)}</code>`).join("<br>")}</div>` : ""}
+  ${r.output?.length ? `<div class="mono muted" style="margin-top:6px;font-size:12px">${r.output.map(esc).join("<br>")}</div>` : ""}
+  ${r.rejected?.length ? `<div class="small muted" style="margin-top:4px">Blocked: ${r.rejected.map((x) => `<code>/${esc(x.command ?? x.action?.type)}</code> (${esc(x.reason)})`).join("<br>")}</div>` : ""}</div>`;
 }
 async function loadRequests() { const { items } = await call("/api/requests"); $("#reqList").innerHTML = items.length ? items.map(renderReq).join("") : '<div class="muted small">No requests yet.</div>'; }
 try { $("#reqFrom").value = localStorage.getItem("dw_name") || ""; } catch {}
@@ -270,7 +272,7 @@ $("#reqForm").addEventListener("submit", async (e) => {
   if (!request) return;
   try { localStorage.setItem("dw_name", from); } catch {}
   $("#reqBtn").disabled = true; $("#reqState").textContent = "Claude is reviewing…";
-  try { const r = await call("/api/request", { request, from }); $("#reqText").value = ""; toast(r.status === "executed" ? "Approved and done ✓" : r.status === "denied" ? "Denied: " + r.reason : r.reason || r.status); loadRequests(); }
+  try { const r = await call("/api/request", { request, from }); $("#reqText").value = ""; toast(r.status === "executed" ? "Approved and done ✓" : r.status === "denied" ? "Denied: " + r.reason : r.reason || r.status); $("#reqResult").innerHTML = r.from === "owner" ? renderReq(r) : ""; loadRequests(); }
   catch (err) { toast(err.message); }
   finally { $("#reqBtn").disabled = false; $("#reqState").textContent = ""; }
 });

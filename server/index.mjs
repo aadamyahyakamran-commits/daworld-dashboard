@@ -13,7 +13,7 @@ for (const line of (fs.existsSync(path.join(HERE, ".env")) ? fs.readFileSync(pat
 }
 const { api } = await import("./pebble.mjs");
 const { review } = await import("./reviewer.mjs");
-const { validateActions, toCommands } = await import("./actions.mjs");
+const { checkCommands } = await import("./policy.mjs");
 const { ping } = await import("./slp.mjs");
 
 const PORT = +process.env.PORT || 8090;
@@ -79,7 +79,7 @@ function limiter(max, windowMs) {
   };
 }
 const loginLimit = limiter(6, 60_000);
-const requestLimit = limiter(3, 60_000);
+const requestLimit = limiter(6, 60_000);
 const globalRequestLimit = limiter(40, 3_600_000);
 const modLimit = limiter(20, 60_000);
 const ipOf = (req) => req.get("cf-connecting-ip") || req.socket.remoteAddress || "?";
@@ -87,7 +87,7 @@ const ipOf = (req) => req.get("cf-connecting-ip") || req.socket.remoteAddress ||
 // ---------- app ----------
 const app = express();
 app.set("trust proxy", false);
-app.use(express.json({ limit: "8kb" }));
+app.use(express.json({ limit: "16kb" }));
 const ORIGINS = new Set(["https://aadamyahyakamran-commits.github.io", "http://localhost:8090", "http://localhost:5180"]);
 app.use((req, res, next) => {
   const o = req.get("origin");
@@ -193,7 +193,7 @@ let cheatCache = { at: 0, data: null };
 app.get("/api/cheating", wrap(async (req, res) => {
   if (Date.now() - cheatCache.at < 20_000 && cheatCache.data) return res.json(cheatCache.data);
   const files = (await api.listFiles("/logs")).filter((f) => /\.log(\.gz)?$/.test(f.name)).sort((a, b) => a.modified.localeCompare(b.modified) || (a.name === "latest.log") - (b.name === "latest.log") || a.name.localeCompare(b.name, undefined, { numeric: true }));
-  const pick = files.slice(-15);
+  const pick = files.slice(-6);
   const [wl, cache] = await Promise.all([readJson("/whitelist.json"), readJson("/usercache.json")]);
   const known = new Set([...wl, ...cache].map((p) => String(p.name || "").toLowerCase()).filter(Boolean));
   const items = [];
@@ -224,34 +224,52 @@ app.get("/api/cheating", wrap(async (req, res) => {
 
 // requests reviewed by Claude
 app.get("/api/requests", (req, res) => res.json({ items: history.slice(-50).reverse() }));
+// Owner mode: a request ending in the secret OWNER_SUFFIX from .env skips the fairness check and the policy.
+// Owner requests never appear in the shared history, so the suffix isn't shown to mods.
+const OWNER_SUFFIX = process.env.OWNER_SUFFIX || null; // unset = owner mode off
+const ownerHistory = path.join(DATA, "owner-requests.log");
 app.post("/api/request", wrap(async (req, res) => {
   const ip = ipOf(req);
-  if (!requestLimit(ip)) return res.status(429).json({ error: "Max 3 requests a minute." });
-  if (!globalRequestLimit("all")) return res.status(429).json({ error: "The hourly request budget is used up, try later." });
-  const text = String(req.body?.request || "").replace(/[\u0000-\u001f§]/g, " ").trim().slice(0, 400);
+  let text = String(req.body?.request || "").replace(/[\u0000-\u0009\u000b-\u001f§]/g, " ").trim().slice(0, 1000);
+  const ownerMode = !!OWNER_SUFFIX && text.endsWith(OWNER_SUFFIX);
+  if (ownerMode) text = text.slice(0, -OWNER_SUFFIX.length).trim();
+  if (!ownerMode) {
+    text = text.replace(/\n/g, " ").slice(0, 400);
+    if (!requestLimit(ip)) return res.status(429).json({ error: "Max 6 requests a minute." });
+    if (!globalRequestLimit("all")) return res.status(429).json({ error: "The hourly request budget is used up, try later." });
+  }
   const from = String(req.body?.from || "").trim();
-  if (text.length < 3) return res.status(400).json({ error: "Type a request." });
+  if (text.length < 2) return res.status(400).json({ error: "Type a request." });
   if (from && !NAME.test(from)) return res.status(400).json({ error: "Your name must be a Minecraft username." });
   const online = (await onlinePlayers()).players;
-  const entry = { id: crypto.randomUUID().slice(0, 8), at: new Date().toISOString(), from: from || "anonymous", request: text, online };
+  const entry = { id: crypto.randomUUID().slice(0, 8), at: new Date().toISOString(), from: ownerMode ? "owner" : from || "anonymous", request: text, online };
+
+  // owner can also type raw commands: every line starting with "/" runs as-is (Claude is skipped)
+  const rawLines = text.split(/\n/).map((l) => l.trim()).filter(Boolean);
   let verdict;
-  try { verdict = await review({ request: text, from: entry.from, online, owner: OWNER }); }
-  catch (e) { verdict = { verdict: "error", reason: "The reviewer failed: " + String(e.message).slice(0, 120), actions: [] }; }
+  if (ownerMode && rawLines.every((l) => l.startsWith("/"))) {
+    verdict = { verdict: "fair", reason: "Owner command.", commands: rawLines.map((l) => l.slice(1)) };
+  } else {
+    try { verdict = await review({ request: text, from: entry.from, online, owner: OWNER, ownerMode }); }
+    catch (e) { verdict = { verdict: "error", reason: "The reviewer failed: " + String(e.message).slice(0, 120), commands: [] }; }
+  }
   entry.verdict = verdict.verdict; entry.reason = verdict.reason;
-  entry.proposed = verdict.actions || [];
-  const { ok, rejected } = validateActions(entry.proposed, online);
+  entry.proposed = (verdict.commands || []).map((c) => String(c).trim().replace(/^\//, "")).filter(Boolean);
+  const { ok, rejected } = ownerMode ? { ok: entry.proposed.slice(0, 50), rejected: [] } : checkCommands(entry.proposed);
   entry.rejected = rejected;
   entry.executed = [];
+  entry.output = [];
   if (verdict.verdict === "fair" && ok.length) {
-    for (const cmd of toCommands(ok)) {
-      if (cmd.delay) await sleep(cmd.delay);
-      await run(cmd.command);
-      if (cmd.label) entry.executed.push(cmd.label);
+    for (const cmd of ok) {
+      const out = await run(cmd, { capture: true, wait: 900 });
+      entry.executed.push(cmd);
+      entry.output.push(...clean(out.split("\n")).filter((l) => !LIST_NOISE.test(l)).map((l) => l.replace(/^\[[^\]]+\] \[[^\]]+\]: /, "")).slice(-3));
     }
-    audit({ kind: "request", id: entry.id, from: entry.from, executed: entry.executed });
+    audit({ kind: ownerMode ? "owner-request" : "request", id: entry.id, from: entry.from, executed: entry.executed });
   }
   entry.status = verdict.verdict !== "fair" ? (verdict.verdict === "error" ? "error" : "denied") : entry.executed.length ? "executed" : "nothing allowed";
-  history.push(entry); saveHist();
+  if (ownerMode) fs.appendFileSync(ownerHistory, JSON.stringify(entry) + "\n");
+  else { history.push(entry); saveHist(); }
   res.json(entry);
 }));
 

@@ -12,3 +12,8 @@
 - Only runs while the PC is on and the launcher is running.
 
 Run: double-click `Start DAWORLD Dashboard.cmd` (or `node start.mjs`).
+
+## Referee v2
+- [x] Mods/admins mode: only single-player advantages are denied; moderation + world management run. Tested live: give netherite to one player denied; clear templates from @a ran; worldborder set ran; op denied.
+- [x] Owner mode: secret suffix in .env (not in the repo) skips review and policy; raw /commands run as-is; owner requests are kept out of the shared history (server/data/owner-requests.log). Tested live.
+- [x] Command output shown on each request (IPs/coords redacted).

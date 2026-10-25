@@ -15,13 +15,14 @@ GitHub Pages (docs/)  ──HTTPS──▶  Cloudflare quick tunnel  ──▶  
                                                                    └─ Claude Agent SDK (owner's Claude login, no tools)
 ```
 
-The password is checked by the backend, never in the page. Whatever Claude approves, only the hard
-allowlist in `server/actions.mjs` can run: time, weather, announcements/titles, sounds, short harmless
-effects, teleport player→player or to spawn. Max 5 actions per request, 3 requests/min per person, 40/hour total.
+The password is checked by the backend, never in the page. Whatever Claude approves, `server/policy.mjs` always blocks:
+op/deop, data/locate/function/datapack (treasure-hunt safety), anything touching hunt markers/keys/vaults or orbital cannons,
+targeting the owner, handing items/effects/XP to anything but @a, creative mode, full inventory wipes, `kill @e` without a type,
+and shrinking or moving the overworld border below �15,000. Max 10 commands per request, 6 requests/min per person, 40/hour total.
 
 ## Run
 
 Double-click **Start DAWORLD Dashboard.cmd** (or `node start.mjs`). It starts the backend, opens a tunnel and
 pushes the tunnel URL to `docs/backend.json`. The dashboard only works while that window is open.
 
-`server/.env` (not committed) holds `PEBBLE_API_KEY`, `PEBBLE_SERVER_ID`, `DASH_PASSWORD`, `TOKEN_SECRET`, `OWNER`, `MC_HOST`.
+`server/.env` (not committed) holds `PEBBLE_API_KEY`, `PEBBLE_SERVER_ID`, `DASH_PASSWORD`, `TOKEN_SECRET`, `OWNER`, `MC_HOST`, `OWNER_SUFFIX`.
